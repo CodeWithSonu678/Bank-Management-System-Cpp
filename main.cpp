@@ -1,274 +1,359 @@
 #include <iostream>
-#include <fstream>
-#include <vector>
 #include <string>
+#include <vector>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
-class Book
+// 🔧 Helper trim function to remove extra spaces
+string trim(const string &s)
 {
-public:
-    int id;
-    string title, author;
-    bool isIssued;
+    size_t start = s.find_first_not_of(" \t");
+    size_t end = s.find_last_not_of(" \t");
+    return (start == string::npos) ? "" : s.substr(start, end - start + 1);
+}
+class Bank
+{
+private:
+    string accountNumber;
+    string accountHolder;
+    double accountBalance;
 
 public:
-    Book()
+    Bank()
     {
     }
 
-    Book(int id, string title, string author)
+    Bank(string accountHolder, string accountNumber, double accountBalance)
     {
-        this->id = id;
-        this->title = title;
-        this->author = author;
-        this->isIssued = false;
+        this->accountHolder = accountHolder;
+        this->accountNumber = accountNumber;
+        this->accountBalance = accountBalance;
     }
 
     void display() const
     {
-        cout << "Id : " << id << " | Title : " << title << " | Author : " << author;
-        cout << " | Isissue : " << (isIssued ? "Yes" : "No") << endl;
+        cout << "👤 Account Holder : " << accountHolder
+             << " | 🆔 Account Number : " << accountNumber
+             << " | 💰 Balance : " << accountBalance << " |" << endl;
+    }
+    string tofileformate() const
+    {
+        return accountHolder + "|" + accountNumber + "|" + to_string(accountBalance) + "|";
     }
 
-    string tofileformat() const
+    // ✅ Safe string parsing using stringstream
+    static Bank fromfile(const string &line)
     {
-        return to_string(id) + "|" + title + "|" + author + "|" + (isIssued ? "1" : "0") + "\n";
-    }
 
-    static Book fromfileformat(const string &line)
-    {
-        Book b;
-        size_t pos1 = line.find('|');
-        size_t pos2 = line.find('|', pos1 + 1);
-        size_t pos3 = line.find('|', pos2 + 1);
+        Bank b;
+        stringstream ss(line);
+        string balanceStr;
 
-        b.id = stoi(line.substr(0, pos1));
-        b.title = line.substr(pos1 + 1, pos2 - pos1 - 1);
-        b.author = line.substr(pos2 + 1, pos3 - pos2 - 1);
-        b.isIssued = line[pos3 + 1] == '1';
+        if (getline(ss, b.accountHolder, '|') &&
+            getline(ss, b.accountNumber, '|') &&
+            getline(ss, balanceStr, '|'))
+        {
+            b.accountHolder = trim(b.accountHolder);
+            b.accountNumber = trim(b.accountNumber);
+            b.accountBalance = stod(trim(balanceStr));
+        }
+        else
+        {
+            throw runtime_error("File line format incorrect: " + line);
+        }
 
         return b;
     }
+
+    // Balance View
+    double getbalance() const
+    {
+        cout << "💳 Total Balance : " << accountBalance << endl;
+        return accountBalance;
+    }
+
+    // Create Account
+    void CreateAccount(vector<Bank> &accounts)
+    {
+        cout << "\n📝 --- Create New Account ---\n";
+
+        cout << "Enter Your Name : ";
+        getline(cin, accountHolder);
+        cout << "Enter Your Account Number : ";
+        getline(cin, accountNumber);
+        cout << "Enter your intial amount to deposit : ";
+        cin >> accountBalance;
+        cin.ignore();
+
+        accounts.push_back(Bank(accountHolder, accountNumber, accountBalance));
+        cout << "Account Create is successfully !\n"
+             << endl;
+    }
+
+    // Deposit ke liye
+    void deposit()
+    {
+        double amount;
+        cout << "Enter your amount to deposit : ";
+        cin >> amount;
+        cin.ignore();
+
+        if (amount > 0)
+        {
+            accountBalance += amount;
+            cout << "Deposit : " << amount << " Successfull !" << endl;
+        }
+        else
+        {
+            cout << "Invalid Deposit Amount !" << endl;
+        }
+    }
+
+    // Withdraul ke liye
+    void withdraul()
+    {
+        double amount;
+        cout << "Enter your amount to withdraul : ";
+        cin >> amount;
+        if (amount > 0 && amount <= accountBalance)
+        {
+            accountBalance -= amount;
+            cout << "Withdraul : " << amount << " is successful !" << endl;
+        }
+        else
+        {
+            cout << "Invalid Withdraul Amount !" << endl;
+        }
+    }
+
+    // display All Accounts
+
+    static void ViewAccount(const vector<Bank> &accounts)
+    {
+        if (accounts.empty())
+        {
+            cout << "No accounts to display.\n";
+        }
+        else
+        {
+            for (auto &acc : accounts)
+            {
+                acc.display();
+            }
+        }
+    }
+
+    // Search Account
+
+    static int SearchAccount(const vector<Bank> &accounts, const string AccNum)
+    {
+        for (size_t i = 0; i < accounts.size(); i++)
+        {
+            if (accounts[i].accountNumber == AccNum)
+                return i;
+        }
+
+        return -1;
+    }
+
+    // Delete Account
+    static void DeleteAccount(vector<Bank> &accounts, const string AccNum)
+    {
+        int index = SearchAccount(accounts, AccNum);
+        if (index != -1)
+        {
+            accounts.erase(accounts.begin() + index);
+            cout << "Account 🗑️ delete is successful !" << endl;
+        }
+        else
+        {
+            cout << "Invalid Account Number !" << endl;
+        }
+    }
+
+    // Update Feature
+    static void UpdateAccount(vector<Bank> &accounts, const string AccNum)
+    {
+        int index = SearchAccount(accounts, AccNum);
+        if (index != -1)
+        {
+            string accholder, accnum;
+            cout << "--- Account Update Details ---" << endl;
+            cout << "Enter your new Name : ";
+            getline(cin, accholder);
+            cout << "Enter your new account number : ";
+            getline(cin, accnum);
+            accounts[index].accountHolder = accholder;
+            accounts[index].accountNumber = accnum;
+
+            cout << "Account 🔄 Update is successful !" << endl;
+        }
+        else
+        {
+            cout << "Invalid Account Number !" << endl;
+        }
+    }
 };
 
-class library
+void loadfile(vector<Bank> &accounts)
 {
-    vector<Book> books;
-    static int totalbook;
-
-    void loadfile()
+    accounts.clear();
+    ifstream out("Accounts_Records.txt");
+    if (!out)
     {
-        ifstream out("Book_Records.txt");
-        string line;
-        while (getline(out, line))
-        {
-            Book b = Book::fromfileformat(line);
-            books.push_back(b);
-            totalbook++;
-        }
-
-        out.close();
+        cout << "File is not open" << endl;
+        return;
+    }
+    string line;
+    while (getline(out, line))
+    {
+        Bank b = Bank::fromfile(line);
+        accounts.push_back(b);
+    }
+    out.close();
+}
+void savefile(const vector<Bank> &accounts)
+{
+    ofstream out("Accounts_Records.txt");
+    for (auto &acc : accounts)
+    {
+        out << acc.tofileformate() << endl;
     }
 
-    void tosavefile()
-    {
-
-        ofstream out("Book_Records.txt");
-        for (auto const &b : books)
-        {
-            out << b.tofileformat();
-        }
-
-        out.close();
-    }
-
-public:
-    library()
-    {
-        loadfile();
-    }
-    ~library()
-    {
-        tosavefile();
-    }
-
-    void Addbook()
-    {
-        int id;
-        string title, author;
-        cout << "Enter the id of the book : ";
-        cin >> id;
-        cin.ignore();
-        cout << "Enter the Title of the book : ";
-        getline(cin, title);
-        cout << "Enter the Author of the book : ";
-        getline(cin, author);
-        books.push_back(Book(id, title, author));
-        totalbook++;
-        tosavefile();
-        cout << "Book Added Successfully !\n" << endl;
-    }
-
-    void ShowAllbooks() const
-    {
-
-        if (books.empty())
-        {
-            cout << "No books Avilable !" << endl;
-            return;
-        }
-
-        for (const auto &b : books)
-        {
-            b.display();
-        }
-    }
-
-    void SearchBook()
-    {
-        int id;
-        cout << "Enter your book id to search : ";
-        cin >> id;
-        cin.ignore();
-
-        bool found;
-        for (const auto &b : books)
-        {
-            if (b.id == id)
-            {
-                b.display();
-                found = true;
-                break;
-            }
-
-            if (!found)
-            {
-                cout << "Not found!" << endl;
-            }
-        }
-    }
-
-    static void totalbookshow()
-    {
-        cout << "Total books is " << totalbook << endl;
-    }
-
-    void DeleteBook()
-    {
-        int id;
-        cout << "Enter your book id to delete : ";
-        cin >> id;
-        cin.ignore();
-        bool found;
-        for (auto it = books.begin(); it != books.end();)
-        {
-            if (it->id == id)
-            {
-                books.erase(it);
-                totalbook--;
-                cout << "Book deleted Successful !" << endl;
-                found = true;
-                return;
-            }
-            if (!found)
-            {
-                cout << "Id is no match !" << endl;
-            }
-        }
-    }
-
-    void UpdateBook()
-    {
-        int getid;
-        string gettitle,getauthor;
-        cout << "Enter your id to update : ";
-        cin >> getid;
-        cin.ignore();
-        bool found;
-        for(auto it = books.begin(); it !=books.end(); )
-        {
-            if(it->id == getid)
-            {
-                cout << "Enter your new book id : ";
-                cin >>getid;
-                cin.ignore();
-                cout << "Enter your new book title : ";
-                getline(cin,gettitle);
-                cout << "Enter your new book Author : ";
-                getline(cin,getauthor);
-
-                it->id= getid;
-                it->title = gettitle;
-                it->author = getauthor;
-                found = true;
-                cout << "Book details updated successfl !" <<endl;
-                return;
-            }
-
-            if(!found)
-            {
-                cout << "Id is not matched !" <<endl;
-            }
-        }
-    }
-};
-
-int library::totalbook = 0;
+    out.close();
+}
 
 int main()
 {
-    library lib;
+    vector<Bank> accounts;
+    loadfile(accounts);
     int choice;
+    Bank myaccount;
+    string AccNum;
     do
     {
-        cout << "----------------------------" << endl;
-        cout << "Library Managment System" << endl;
-        cout << "----------------------------" << endl;
-        cout << endl;
-        cout << "----Menu----" << endl;
-        cout << "1.Add Book" << endl;
-        cout << "2.Show All Books" << endl;
-        cout << "3.Search Books" << endl;
-        cout << "4.Total Books" << endl;
-        cout << "5.Delete Book" << endl;
-        cout << "6.Update Book" << endl;
-        cout << "7.Exit\n"
-             << endl;
+        cout << "-------------------------" << endl;
+        cout << "🏦 BANKING SYSTEM MENU" << endl;
+        cout << "-------------------------" << endl;
+
+        cout << "1.✅ Create Account" << endl;
+        cout << "2.💰 Deposit Money" << endl;
+        cout << "3.💸 Withdraw Money" << endl;
+        cout << "4.📄 View Balance" << endl;
+        cout << "5.🗑️ Delete Account" << endl;
+        cout << "6.🔄  Update Account" << endl;
+        cout << "7.📋 Display All Accounts" << endl;
+        cout << "8. 🔍 Search Account" << endl;
+        cout << "9.🚪 Exit" << endl;
 
         cout << "Enter your choice : ";
         cin >> choice;
         cin.ignore();
-        cout << endl;
+
         switch (choice)
         {
         case 1:
-            lib.Addbook();
+            myaccount.CreateAccount(accounts);
             break;
         case 2:
-            lib.ShowAllbooks();
-            break;
-        case 3:
-            lib.SearchBook();
-            break;
-        case 4:
-            library::totalbookshow();
-            break;
+        {
+            cout << "Enter your account number to deposit: ";
+            getline(cin, AccNum);
 
+            int i = Bank::SearchAccount(accounts, AccNum);
+            if (i != -1)
+            {
+                accounts[i].deposit();
+            }
+            else
+            {
+                cout << "Account not found!" << endl;
+            }
+
+            break;
+        }
+        case 3:
+        {
+            cout << "Enter your account number to withdraul : ";
+            getline(cin, AccNum);
+
+            int i = Bank::SearchAccount(accounts, AccNum);
+            if (i != -1)
+            {
+                accounts[i].withdraul();
+            }
+            else
+            {
+                cout << "Account not found!" << endl;
+            }
+
+            break;
+        }
+        case 4:
+        {
+            cout << "Enter your account number to search balacnce : ";
+            getline(cin, AccNum);
+
+            int i = Bank::SearchAccount(accounts, AccNum);
+            if (i != -1)
+            {
+                accounts[i].getbalance();
+            }
+            else
+            {
+                cout << "Account not found!" << endl;
+            }
+
+            break;
+        }
         case 5:
-            lib.DeleteBook();
+        {
+            cout << "Enter your account number to delete : ";
+            getline(cin, AccNum);
+            Bank::DeleteAccount(accounts, AccNum);
+
             break;
+        }
         case 6:
-            lib.UpdateBook();
+        {
+            cout << "Enter your account number to update : ";
+            getline(cin, AccNum);
+            Bank::UpdateAccount(accounts, AccNum);
             break;
+        }
         case 7:
-            cout << "Exiting... Saving data.\n";
+            Bank::ViewAccount(accounts);
             break;
+        case 8:
+        {
+            cout << "Enter your account number to serach : ";
+            getline(cin, AccNum);
+            int i = Bank::SearchAccount(accounts, AccNum);
+            if (i != -1)
+            {
+                accounts[i].display();
+            }
+            else
+            {
+                cout << "Invalid Account number !" << endl;
+            }
+
+            break;
+        }
+        case 9:
+        {
+            savefile(accounts);
+            cout << "All accounts saved to file successfully." << endl;
+            cout << "Exit the program ....." << endl;
+            break;
+        }
         default:
             cout << "Enter the correct choice !" << endl;
             break;
         }
 
-    } while (choice != 7);
+    } while (choice != 9);
 
     return 0;
 }
